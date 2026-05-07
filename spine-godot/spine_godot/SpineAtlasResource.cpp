@@ -74,22 +74,29 @@ public:
 	}
 
 	static bool fix_path(String &path) {
-		const String prefix = "res:/";
-		auto i = path.find(prefix);
-		if (i == -1) {
-			return false;
+		// 如果已经是规范路径，直接返回 true
+		if (path.begins_with("res://") || path.begins_with("user://")) {
+			return true;
+		}
+		
+		// 兼容可能出现的单斜杠情况
+		if (path.begins_with("res:/")) {
+			path = path.replace("res:/", "res://");
+			return true;
+		}
+		if (path.begins_with("user:/")) {
+			path = path.replace("user:/", "user://");
+			return true;
 		}
 
-		auto sub_str_pos = i + SSIZE(prefix) - 1;
-		auto res = path.substr(sub_str_pos);
-		if (!EMPTY(res)) {
-			if (res[0] != '/') {
-				path = prefix + String("/") + res;
-			} else {
-				path = prefix + res;
-			}
+		// 处理绝对路径，将其转换为 user:// 或 res://
+		String localized = ProjectSettings::get_singleton()->localize_path(path);
+		if (localized.begins_with("res://") || localized.begins_with("user://")) {
+			path = localized;
+			return true;
 		}
-		return true;
+
+		return false;
 	}
 
 #if VERSION_MAJOR > 3
