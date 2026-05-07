@@ -74,29 +74,32 @@ public:
 	}
 
 	static bool fix_path(String &path) {
-		// 如果已经是规范路径，直接返回 true
-		if (path.begins_with("res://") || path.begins_with("user://")) {
-			return true;
-		}
+		// 定义需要检查的两个前缀
+		const char* prefixes[] = { "res:/", "user:/" };
 		
-		// 兼容可能出现的单斜杠情况
-		if (path.begins_with("res:/")) {
-			path = path.replace("res:/", "res://");
-			return true;
-		}
-		if (path.begins_with("user:/")) {
-			path = path.replace("user:/", "user://");
-			return true;
+		for (int p = 0; p < 2; p++) {
+			const String prefix = prefixes[p];
+			auto i = path.find(prefix);
+			
+			if (i != -1) {
+				// 严格遵循原有的偏移计算逻辑
+				auto sub_str_pos = i + SSIZE(prefix) - 1;
+				auto res = path.substr(sub_str_pos);
+				
+				if (!EMPTY(res)) {
+					// 如果路径后缀第一个字符不是 /，则补成 //
+					if (res[0] != '/') {
+						path = prefix + String("/") + res;
+					} else {
+						// 已经是 / 则保持原样 (拼接后形成 ://)
+						path = prefix + res;
+					}
+				}
+				return true; // 匹配到其中一个并修复后直接返回
+			}
 		}
 
-		// 处理绝对路径，将其转换为 user:// 或 res://
-		String localized = ProjectSettings::get_singleton()->localize_path(path);
-		if (localized.begins_with("res://") || localized.begins_with("user://")) {
-			path = localized;
-			return true;
-		}
-
-		return false;
+		return false; // 两个前缀都没找到
 	}
 
 #if VERSION_MAJOR > 3
